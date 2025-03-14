@@ -1,0 +1,14 @@
+{% if invitation and not invitation.is_used and invitation.expires_at > now %}
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="hidden" name="invitation_token" value="{{ invitation.token }}">
+        <button type="submit" class="btn btn-primary">S'inscrire</button>
+    </form>
+{% else %}
+    <div class="alert alert-warning">
+        <h4>Inscription non autorisée</h4>
+        <p>L'inscription n'est possible que sur invitation. 
+           Veuillez contacter votre administrateur.</p>
+    </div>
+{% endif %} 

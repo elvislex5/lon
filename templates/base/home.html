@@ -1,0 +1,80 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 text-center mb-4">
+        <h1>Bienvenue sur Lôn</h1>
+        <p class="lead">Votre solution de gestion de chantier</p>
+    </div>
+</div>
+
+{% if user.is_authenticated %}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Mes Projets Récents</h5>
+                </div>
+                <div class="card-body">
+                    {% if user.projects.all %}
+                        <ul class="list-group">
+                            {% for project in user.projects.all|slice:":5" %}
+                                <li class="list-group-item">
+                                    <a href="{% url 'projects:detail' project.id %}">{{ project.name }}</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Aucun projet en cours.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Mes Tâches à Faire</h5>
+                </div>
+                <div class="card-body">
+                    {% if user.assigned_tasks.all %}
+                        <ul class="list-group">
+                            {% for task in user.assigned_tasks.all|slice:":5" %}
+                                <li class="list-group-item">
+                                    <a href="{% url 'tasks:detail' task.id %}">{{ task.title }}</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Aucune tâche assignée.</p>
+                    {% endif %}
+                    {% if user.managed_projects.exists %}
+                        <a href="{% url 'tasks:create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-1"></i>Nouvelle Tâche
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if not user.projects.exists and not user.managed_projects.exists %}
+        <div class="alert alert-info">
+            <h4>Bienvenue sur Lôn !</h4>
+            <p>Vous n'avez pas encore de projets assignés.</p>
+            {% if user.is_staff %}
+                <a href="{% url 'projects:create' %}" class="btn btn-primary">
+                    Créer un projet
+                </a>
+            {% else %}
+                <p>Un manager vous assignera bientôt à un projet.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+{% else %}
+    <div class="row">
+        <div class="col-md-6 offset-md-3 text-center">
+            <p>Veuillez vous connecter pour accéder à vos projets et tâches.</p>
+            <a href="{% url 'login' %}" class="btn btn-primary">Se connecter</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %} 

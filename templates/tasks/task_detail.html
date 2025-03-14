@@ -1,0 +1,236 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ task.title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>{{ task.title }}</h2>
+            <p class="text-muted">
+                Créée par {{ task.created_by.get_full_name }} le {{ task.created_at|date:"d/m/Y" }}
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if user == task.project.manager %}
+            <a href="{% url 'tasks:edit' task.pk %}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i>Modifier
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Informations principales -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Détails de la tâche</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Projet :</strong>
+                        </div>
+                        <div class="col-md-8">
+                            <a href="{% url 'projects:detail' task.project.id %}">{{ task.project.name }}</a>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Créée par :</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ task.created_by.get_full_name }}
+                            <small class="text-muted">(le {{ task.created_at|date:"d/m/Y" }})</small>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Statut :</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {% if task.status == 'todo' %}
+                                <span class="badge bg-secondary">{{ task.get_status_display }}</span>
+                            {% elif task.status == 'in_progress' %}
+                                <span class="badge bg-primary">{{ task.get_status_display }}</span>
+                            {% elif task.status == 'review' %}
+                                <span class="badge bg-warning">{{ task.get_status_display }}</span>
+                            {% elif task.status == 'done' %}
+                                <span class="badge bg-success">{{ task.get_status_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Priorité :</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {% if task.priority == 'low' %}
+                                <span class="badge bg-secondary">{{ task.get_priority_display }}</span>
+                            {% elif task.priority == 'medium' %}
+                                <span class="badge bg-primary">{{ task.get_priority_display }}</span>
+                            {% elif task.priority == 'high' %}
+                                <span class="badge bg-warning">{{ task.get_priority_display }}</span>
+                            {% elif task.priority == 'urgent' %}
+                                <span class="badge bg-danger">{{ task.get_priority_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Assignée à :</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ task.assigned_to.get_full_name }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Période :</strong>
+                        </div>
+                        <div class="col-md-8">
+                            Du {{ task.start_date|date:"d/m/Y" }} au {{ task.end_date|date:"d/m/Y" }}
+                            {% if task.duration_days %}
+                                ({{ task.duration_days }} jour{{ task.duration_days|pluralize }})
+                            {% endif %}
+                            {% if task.is_overdue %}
+                                <span class="badge bg-danger ms-2">En retard</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>État d'avancement :</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {% if task.status == 'done' %}
+                                {% if task.completion_status %}
+                                    <span class="text-success">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        {{ task.completion_status }}
+                                    </span>
+                                {% endif %}
+                            {% elif task.progress_days %}
+                                {{ task.progress_days }} jour{{ task.progress_days|pluralize }}
+                                écoulé{{ task.progress_days|pluralize }}
+                                {% if task.delay_status %}
+                                    <br>
+                                    <span class="{% if task.is_overdue %}text-danger{% else %}text-warning{% endif %}">
+                                        <i class="fas {% if task.is_overdue %}fa-exclamation-circle{% else %}fa-clock{% endif %} me-1"></i>
+                                        {{ task.delay_status }}
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                Non commencée
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Description</h5>
+                </div>
+                <div class="card-body">
+                    {{ task.description|linebreaks }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'tasks:kanban' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-columns me-1"></i>Retour au Kanban
+                        </a>
+                        <a href="{% url 'tasks:list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-list me-1"></i>Liste des tâches
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Documents</h5>
+                    <a href="{% url 'tasks:add_document' task.pk %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Ajouter
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if task.documents.exists %}
+                        <div class="list-group">
+                        {% for doc in task.documents.all %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <a href="{{ doc.file.url }}" target="_blank" class="text-decoration-none">
+                                        <i class="fas fa-file me-2"></i>{{ doc.title }}
+                                    </a>
+                                    <br>
+                                    <small class="text-muted">
+                                        Ajouté par {{ doc.uploaded_by.get_full_name }} 
+                                        le {{ doc.uploaded_at|date:"d/m/Y H:i" }}
+                                    </small>
+                                </div>
+                                {% if user == doc.uploaded_by or user == task.project.manager %}
+                                    <form method="post" action="{% url 'tasks:delete_document' doc.pk %}" 
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm" 
+                                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce document ?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Aucun document attaché à cette tâche.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour logger le temps -->
+<div class="modal fade" id="logTimeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'tasks:log_time' task.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajouter du temps passé</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="hours" class="form-label">Heures travaillées</label>
+                        <input type="number" class="form-control" id="hours" name="hours" step="0.5" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Commentaire (optionnel)</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

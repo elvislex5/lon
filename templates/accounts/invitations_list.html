@@ -1,0 +1,69 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>Invitations</h2>
+        
+        <!-- Formulaire d'invitation -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Inviter un nouvel utilisateur</h5>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="email" name="email" class="form-control" 
+                               placeholder="Adresse email" required>
+                        <button type="submit" class="btn btn-primary">
+                            Envoyer l'invitation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Liste des invitations -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Invitations envoyées</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Date d'envoi</th>
+                                <th>Statut</th>
+                                <th>Invité par</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invitation in invitations %}
+                            <tr>
+                                <td>{{ invitation.email }}</td>
+                                <td>{{ invitation.created_at|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% if invitation.is_used %}
+                                        <span class="badge bg-success">Utilisée</span>
+                                    {% elif invitation.expires_at < now %}
+                                        <span class="badge bg-danger">Expirée</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">En attente</span>
+                                        <br>
+                                        <small class="text-muted">
+                                            <a href="http://{{ request.get_host }}/register/{{ invitation.token }}/">
+                                                Lien d'inscription
+                                            </a>
+                                        </small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ invitation.invited_by.get_full_name }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
