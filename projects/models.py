@@ -1,24 +1,27 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from clients.models import Client
 
 class Project(models.Model):
     STATUS_CHOICES = [
-        ('planning', 'En planification'),
-        ('in_progress', 'En cours'),
-        ('on_hold', 'En pause'),
-        ('completed', 'Terminé'),
+        ('NEW', 'Nouveau'),
+        ('SIGNED', 'Signé'),
+        ('IN_PROGRESS', 'En cours'),
+        ('PAID', 'Payé'),
+        ('LOST', 'Perdu')
     ]
 
     name = models.CharField(max_length=200, verbose_name="Nom du projet")
     description = models.TextField(blank=True, verbose_name="Description")
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, verbose_name="Client")
     location = models.CharField(max_length=200, verbose_name="Lieu")
     start_date = models.DateField(verbose_name="Date de début")
     end_date = models.DateField(verbose_name="Date de fin prévue")
     status = models.CharField(
         max_length=20, 
         choices=STATUS_CHOICES,
-        default='planning',
+        default='NEW',
         verbose_name="Statut"
     )
     budget = models.DecimalField(

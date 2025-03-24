@@ -10,4 +10,4 @@ class ProjectForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'team_members': forms.SelectMultiple(attrs={'class': 'form-select'}),
-        } 
+            'client': forms.Select(attrs={'class': 'form-select'}),

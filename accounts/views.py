@@ -1,22 +1,28 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import login
-from django.contrib import messages
-from .forms import SignUpForm
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
-from django.core.mail import send_mail
-from django.utils import timezone
+# ... existing imports ...
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from .serializers import UserSerializer, NotificationSerializer
+from django.contrib.auth import get_user_model
 
-# Create your views here.
+User = get_user_model() 
 
-def signup(request):
-    if request.method == 'POST':
-        form = SignUpForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, 'Bienvenue sur Lôn !')
-            return redirect('home')
-    else:
-        form = SignUpForm()
-    return render(request, 'accounts/signup.html', {'form': form})
+class UserViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Pour la création/édition de projet, on permet de voir tous les utilisateurs
+        if self.action == 'list':
+            return User.objects.all()
+        # Pour les autres actions, on garde la restriction
+        if self.request.user.is_staff:
+            return User.objects.all()
+        return User.objects.filter(id=self.request.user.id)
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Les utilisateurs ne voient que leurs propres notifications
+        return Notification.objects.filter(user=self.request.user)

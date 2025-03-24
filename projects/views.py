@@ -1,93 +1,48 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from .models import Project
-from .forms import ProjectForm
-from django.db import models
-from django.views.generic import DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import PermissionDenied
+from .serializers import ProjectSerializer, ProjectCreateUpdateSerializer
 
-# Create your views here.
-
-@login_required
-def project_list(request):
-    # Voir les projets où l'utilisateur est manager OU membre
-    projects = Project.objects.filter(
-        models.Q(manager=request.user) |
-        models.Q(team_members=request.user)
-    ).distinct().order_by('-created_at')
+class ProjectViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
     
-    return render(request, 'projects/project_list.html', {
-        'projects': projects
-    })
+    def get_queryset(self):
+        user = self.request.user
+        return Project.objects.filter(
+            team_members=user
+        ).distinct()
 
-class ProjectDetailView(LoginRequiredMixin, DetailView):
-    model = Project
-    template_name = 'projects/project_detail.html'
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return ProjectCreateUpdateSerializer
+        return ProjectSerializer
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def perform_create(self, serializer):
+        serializer.save(manager=self.request.user)
+
+    @action(detail=False, methods=['GET'])
+    def managed(self):
+        """Retourne les projets gérés par l'utilisateur"""
+        projects = Project.objects.filter(manager=self.request.user)
+        serializer = self.get_serializer(projects, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['PATCH'])
+    def update_status(self, request, pk=None):
+        """
+        Endpoint spécial pour mettre à jour le statut d'un projet
+        """
         project = self.get_object()
+        new_status = request.data.get('status')
         
-        # Vérifier l'accès
-        if self.request.user not in project.team_members.all() and self.request.user != project.manager:
-            raise PermissionDenied("Vous n'avez pas accès à ce projet.")
+        if new_status not in dict(Project.STATUS_CHOICES):
+            return Response(
+                {'error': 'Statut invalide'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        # Filtrer les tâches
-        status_filter = self.request.GET.get('status')
-        priority_filter = self.request.GET.get('priority')
-        search_query = self.request.GET.get('q')
+        project.status = new_status
+        project.save()
         
-        tasks = project.tasks.all().order_by('end_date')  # Tri par défaut
-        if status_filter:
-            tasks = tasks.filter(status=status_filter)
-        if priority_filter:
-            tasks = tasks.filter(priority=priority_filter)
-        if search_query:
-            tasks = tasks.filter(title__icontains=search_query)
-            
-        context['tasks'] = tasks
-        context['task_statistics'] = project.task_statistics
-        return context
-
-@login_required
-def project_create(request):
-    if request.method == 'POST':
-        form = ProjectForm(request.POST)
-        if form.is_valid():
-            project = form.save(commit=False)
-            project.manager = request.user
-            project.save()
-            form.save_m2m()  # Pour sauvegarder les relations ManyToMany
-            messages.success(request, 'Projet créé avec succès.')
-            return redirect('projects:detail', pk=project.pk)
-    else:
-        form = ProjectForm()
-    
-    return render(request, 'projects/project_form.html', {
-        'form': form,
-        'title': 'Nouveau Projet'
-    })
-
-@login_required
-def project_edit(request, pk):
-    project = get_object_or_404(Project, pk=pk)
-    if request.user != project.manager:
-        messages.error(request, "Vous n'avez pas la permission de modifier ce projet.")
-        return redirect('projects:detail', pk=project.pk)
-    
-    if request.method == 'POST':
-        form = ProjectForm(request.POST, instance=project)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Projet modifié avec succès.')
-            return redirect('projects:detail', pk=project.pk)
-    else:
-        form = ProjectForm(instance=project)
-    
-    return render(request, 'projects/project_form.html', {
-        'form': form,
-        'project': project,
-        'title': 'Modifier le Projet'
-    })
+        return Response(ProjectSerializer(project).data)

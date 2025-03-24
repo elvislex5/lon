@@ -1,29 +1,45 @@
 {% extends 'base/base.html' %}
+<!--
+1. Hérite d'un modèle de base, intégrant ainsi styles CSS/JS communs à toutes les pages.
+-->
 
 {% block title %}Mes Tâches - {{ block.super }}{% endblock %}
+<!--
+2. Définit le titre spécifique de la page, ajoutant "Mes Tâches" devant le titre du modèle parent.
+-->
 
 {% block content %}
+
+<!-- En-tête de la page avec titre et boutons d’actions -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Mes Tâches</h1>
+
+    <!-- Liens vers différentes vues/actions disponibles -->
     <div>
+        <!-- Lien vers la vue Kanban de gestion des tâches -->
         <a href="{% url 'tasks:kanban' %}" class="btn btn-outline-primary me-2">
             <i class="fas fa-columns me-1"></i>Vue Kanban
         </a>
-        {% if user.managed_projects.exists %}  {# Montrer seulement aux managers #}
-        <a href="{% url 'tasks:create' %}" class="btn btn-primary">
-            <i class="fas fa-plus-circle me-1"></i>Nouvelle Tâche
-        </a>
+
+        <!-- Bouton visible uniquement pour les utilisateurs gestionnaires de projets -->
+        {% if user.managed_projects.exists %}  {# Montré uniquement aux managers de projets #}
+            <a href="{% url 'tasks:create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i>Nouvelle Tâche
+            </a>
         {% endif %}
     </div>
 </div>
 
+<!-- Section principale affichant les tâches dans un tableau -->
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-body">
+                <!-- Tableau responsive pour un affichage optimisé sur périphériques mobiles -->
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
+                            <!-- En-tête des colonnes décrivant chaque attribut d’une tâche -->
                             <tr>
                                 <th>Titre</th>
                                 <th>Projet</th>
@@ -35,61 +51,71 @@
                             </tr>
                         </thead>
                         <tbody>
+                            <!-- Itération sur chaque tâche passée depuis le backend -->
                             {% for task in tasks %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'tasks:detail' task.pk %}">{{ task.title }}</a>
-                                    <br>
-                                    <small class="text-muted">Créée par {{ task.created_by.get_full_name }}</small>
-                                </td>
-                                <td>{{ task.project.name }}</td>
-                                <td>
-                                    {% if task.status == 'todo' %}
-                                        <span class="badge bg-secondary">{{ task.get_status_display }}</span>
-                                    {% elif task.status == 'in_progress' %}
-                                        <span class="badge bg-primary">{{ task.get_status_display }}</span>
-                                    {% elif task.status == 'review' %}
-                                        <span class="badge bg-warning">{{ task.get_status_display }}</span>
-                                    {% elif task.status == 'done' %}
-                                        <span class="badge bg-success">{{ task.get_status_display }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if task.priority == 'low' %}
-                                        <span class="badge bg-secondary">{{ task.get_priority_display }}</span>
-                                    {% elif task.priority == 'medium' %}
-                                        <span class="badge bg-primary">{{ task.get_priority_display }}</span>
-                                    {% elif task.priority == 'high' %}
-                                        <span class="badge bg-warning">{{ task.get_priority_display }}</span>
-                                    {% elif task.priority == 'urgent' %}
-                                        <span class="badge bg-danger">{{ task.get_priority_display }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ task.assigned_to.get_full_name }}</td>
-                                <td>
-                                    {{ task.end_date|date:"d/m/Y" }}
-                                    {% if task.delay_status %}
+                                <tr>
+                                    <!-- Colonne Titre avec lien vers le détail de la tâche -->
+                                    <td>
+                                        <a href="{% url 'tasks:detail' task.pk %}">{{ task.title }}</a>
                                         <br>
-                                        <small class="{% if task.is_overdue %}text-danger{% else %}text-warning{% endif %}">
-                                            {{ task.delay_status }}
-                                        </small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{% url 'tasks:detail' task.pk %}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    {% if user == task.project.manager %}
-                                    <a href="{% url 'tasks:edit' task.pk %}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    {% endif %}
-                                </td>
-                            </tr>
+                                        <!-- Affichage du créateur avec son nom complet -->
+                                        <small class="text-muted">Créée par {{ task.created_by.get_full_name }}</small>
+                                    </td>
+
+                                    <!-- Nom du projet associé -->
+                                    <td>{{ task.project.name }}</td>
+
+                                    <!-- Affiche le statut avec une étiquette colorée (badge) selon le statut -->
+                                    <td>
+                                        {% if task.status == 'todo' %}
+                                            <span class="badge bg-secondary">{{ task.get_status_display }}</span>
+                                        {% elif task.status == 'in_progress' %}
+                                            <span class="badge bg-primary">{{ task.get_status_display }}</span>
+                                        {% elif task.status == 'review' %}
+                                            <span class="badge bg-warning">{{ task.get_status_display }}</span>
+                                        {% elif task.status == 'done' %}
+                                            <span class="badge bg-success">{{ task.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Affichage prioritaire avec une couleur indicative -->
+                                    <td>
+                                        {% if task.priority == 'low' %}
+                                            <span class="badge bg-secondary">{{ task.get_priority_display }}</span>
+                                        {% elif task.priority == 'medium' %}
+                                            <span class="badge bg-primary">{{ task.get_priority_display }}</span>
+                                        {% elif task.priority == 'high' %}
+                                            <span class="badge bg-warning">{{ task.get_priority_display }}</span>
+                                        {% elif task.priority == 'urgent' %}
+                                            <span class="badge bg-danger">{{ task.get_priority_display }}</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Nom de la personne assignée à la tâche -->
+                                    <td>{{ task.assigned_to.get_full_name }}</td>
+
+                                    <!-- Date limite de la tâche avec gestion du retard éventuel -->
+                                    <td>
+                                        {{ task.end_date|date:"d/m/Y" }}
+                                        {% if task.delay_status %}
+                                            <br>
+                                            <!-- Affiche une information supplémentaire si la tâche est en retard ou en risque -->
+                                            <small class="{% if task.is_overdue %}text-danger{% else %}text-warning{% endif %}">
+                                                {{ task.delay_status }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Colonne avec les actions possibles telles que modifier, supprimer... -->
+                                    <td>
+                                        <!-- Placer ici les actions possibles pour chaque tâche -->
+                                    </td>
+                                </tr>
                             {% empty %}
-                            <tr>
-                                <td colspan="7" class="text-center">Aucune tâche trouvée.</td>
-                            </tr>
+                                <!-- Affichage lorsque aucune tâche n’est disponible -->
+                                <tr>
+                                    <td colspan="7" class="text-center">Aucune tâche trouvée.</td>
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -98,4 +124,5 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+
+{% endblock %}
